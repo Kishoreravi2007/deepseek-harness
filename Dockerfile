@@ -15,17 +15,18 @@ COPY . ./
 
 ENV CI=true
 ENV LEFTHOOK=0
-ENV NODE_ENV=production
 ENV HOME=/home/node
 ENV DSH_HOME=/home/node/.dsh
 ENV PORT=3080
 ENV DSH_TELEMETRY_DISABLED=1
 
-# Install monorepo dependencies, build all packages and web frontend in place
+# Install monorepo dependencies (including all devDependencies for complete workspace linking and plugin resolution), build all packages and web frontend in place
 RUN mkdir -p /home/node/.dsh && \
-    pnpm install --frozen-lockfile --ignore-scripts && \
+    pnpm install --frozen-lockfile --ignore-scripts --prod=false && \
     pnpm run build && \
     chown -R node:node /app /home/node
+
+ENV NODE_ENV=production
 
 USER node
 
