@@ -1,0 +1,84 @@
+name: Deploy to Scalix World Cloud
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'packages/**'
+      - 'apps/**'
+      - 'vendor/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-scalix.yml'
+  workflow_dispatch:
+    inputs:
+      service_name:
+        description: 'Scalix Run Service Name'
+        required: false
+        default: 'dsh-web'
+
+concurrency:
+  group: scalix-deployment
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Package source tarball (Dockerfile at root)
+        run: |
+          mkdir -p .artifacts
+          git archive --format=tar.gz -o .artifacts/dsh-source.tar.gz HEAD
+          ls -lh .artifacts/dsh-source.tar.gz
+
+      - name: Publish source tarball to GitHub Release asset
+        id: create_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="scalix-build-$(date +%Y%m%d%H%M%S)"
+          gh release create "$TAG_NAME" .artifacts/dsh-source.tar.gz --title "Scalix Build Asset $TAG_NAME" --notes "Automated tarball asset for Scalix build system"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/dsh-source.tar.gz"
+          echo "tarball_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+
+      - name: Run Scalix Build and Service Deployment
+        env:
+          SCALIX_API_KEY: ${{ secrets.SCALIX_API_KEY }}
+          SCALIX_PROJECT_ID: ${{ secrets.SCALIX_PROJECT_ID }}
+          SCALIX_SERVICE_NAME: ${{ github.event.inputs.service_name || 'dsh-web' }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SOURCE_TARBALL_URL: ${{ steps.create_release.outputs.tarball_url }}
+        run: |
+          npx --yes tsx scripts/deploy-scalix.ts
+
+      - name: Smoke check Scalix service
+        run: |
+          SERVICE_NAME="${{ github.event.inputs.service_name || 'dsh-web' }}"
+          URL="https://${SERVICE_NAME}.run.scalix.world"
+          echo "Probing $URL ..."
+          for i in {1..12}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            echo "Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ]; then
+              echo "Service is live and responding!"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Warning: Service endpoint did not return 200 within grace window (might still be spinning up)."
