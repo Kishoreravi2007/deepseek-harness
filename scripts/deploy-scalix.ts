@@ -19,6 +19,7 @@ interface ServiceSpec {
   image_ref: string
   port: number
   health_check_path: string
+  memory_mb?: number
   env?: Record<string, string>
   min_instances?: number
   max_instances?: number
@@ -166,6 +167,7 @@ async function deployRunService(): Promise<void> {
     image_ref: imageRef,
     port: 3080,
     health_check_path: '/',
+    memory_mb: 512,
     env: {
       NODE_ENV: 'production',
       PORT: '3080',

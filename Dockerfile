@@ -24,6 +24,7 @@ COPY native/ ./native/
 COPY examples/ ./examples/
 COPY website/ ./website/
 COPY python/ ./python/
+COPY scalix.patch.yml ./
 
 ENV CI=true
 ENV LEFTHOOK=0
@@ -42,10 +43,13 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Minimal runtime dependencies
-RUN apk add --no-cache bash ca-certificates
+RUN apk add --no-cache bash ca-certificates && \
+    mkdir -p /home/node/.dsh && \
+    chown -R node:node /home/node
 
 ENV NODE_ENV=production
-ENV DSH_HOST=0.0.0.0
+ENV HOME=/home/node
+ENV DSH_HOME=/home/node/.dsh
 ENV PORT=3080
 ENV DSH_TELEMETRY_DISABLED=1
 
@@ -57,6 +61,7 @@ COPY --chown=node:node --from=builder /app/packages ./packages
 COPY --chown=node:node --from=builder /app/apps ./apps
 COPY --chown=node:node --from=builder /app/patches ./patches
 COPY --chown=node:node --from=builder /app/scripts ./scripts
+COPY --chown=node:node --from=builder /app/scalix.patch.yml ./scalix.patch.yml
 
 USER node
 
@@ -67,4 +72,4 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3080/ || exit 1
 
 ENTRYPOINT ["node", "apps/cli/lib/bin.js"]
-CMD ["web"]
+CMD ["web", "--patch", "scalix.patch.yml"]
