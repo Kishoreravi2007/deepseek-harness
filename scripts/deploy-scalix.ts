@@ -184,8 +184,9 @@ async function deployRunService(): Promise<void> {
   let existingServiceId: string | undefined
 
   if (listResp.ok) {
-    const services = (await listResp.json()) as { services?: Array<{ id: string; name: string }> }
-    const match = services.services?.find(s => s.name === SERVICE_NAME)
+    const raw = (await listResp.json()) as Array<{ id: string; name: string }> | { services?: Array<{ id: string; name: string }> }
+    const list = Array.isArray(raw) ? raw : (raw.services ?? [])
+    const match = list.find(s => s.name === SERVICE_NAME)
     if (match) {
       existingServiceId = match.id
     }
