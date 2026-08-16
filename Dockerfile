@@ -13,11 +13,17 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
 
-# Copy monorepo manifests first for optimal layer caching
+# Copy monorepo manifests and workspace members for pnpm resolution
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json tsconfig.base.client.json tsconfig.host.json tsconfig.client.json tsconfig.json tsdown.config.ts ./
+COPY patches/ ./patches/
+COPY scripts/ ./scripts/
 COPY vendor/ ./vendor/
 COPY packages/ ./packages/
 COPY apps/ ./apps/
+COPY native/ ./native/
+COPY examples/ ./examples/
+COPY website/ ./website/
+COPY python/ ./python/
 
 # Install dependencies and build all packages & web frontend
 RUN pnpm install --frozen-lockfile && \
@@ -46,6 +52,8 @@ COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/vendor ./vendor
 COPY --chown=node:node --from=builder /app/packages ./packages
 COPY --chown=node:node --from=builder /app/apps ./apps
+COPY --chown=node:node --from=builder /app/patches ./patches
+COPY --chown=node:node --from=builder /app/scripts ./scripts
 
 USER node
 

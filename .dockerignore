@@ -9,9 +9,6 @@ dist
 **/.dist
 coverage
 **/coverage
-python
-native
-website
 docs
 assets
 *.log
