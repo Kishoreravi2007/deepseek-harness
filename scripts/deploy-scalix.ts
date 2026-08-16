@@ -175,7 +175,7 @@ async function deployRunService(): Promise<void> {
       DSH_TELEMETRY_DISABLED: '1',
       ...(DEEPSEEK_API_KEY ? { DEEPSEEK_API_KEY } : {}),
     },
-    min_instances: 1,
+    min_instances: 0,
     max_instances: 2,
   }
 
