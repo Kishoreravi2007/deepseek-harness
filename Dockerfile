@@ -31,8 +31,7 @@ ENV LEFTHOOK=0
 
 # Install dependencies and build all packages & web frontend
 RUN pnpm install --frozen-lockfile --ignore-scripts && \
-    pnpm run build && \
-    pnpm prune --prod --config.confirmModulesPurge=false --ignore-scripts
+    pnpm run build
 
 # ==============================================================================
 # Stage 2: Runtime stage
