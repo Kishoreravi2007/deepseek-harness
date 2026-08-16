@@ -29,8 +29,8 @@ COPY scalix.patch.yml ./
 ENV CI=true
 ENV LEFTHOOK=0
 
-# Install dependencies and build all packages & web frontend
-RUN pnpm install --frozen-lockfile --ignore-scripts && \
+# Install dependencies with hoisted layout (flat real files, no OCI symlink errors) and build
+RUN pnpm install --frozen-lockfile --ignore-scripts --node-linker=hoisted && \
     pnpm run build
 
 # ==============================================================================
