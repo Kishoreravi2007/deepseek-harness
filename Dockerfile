@@ -25,10 +25,12 @@ COPY examples/ ./examples/
 COPY website/ ./website/
 COPY python/ ./python/
 
+ENV CI=true
+
 # Install dependencies and build all packages & web frontend
 RUN pnpm install --frozen-lockfile && \
     pnpm run build && \
-    pnpm prune --prod
+    pnpm prune --prod --config.confirmModulesPurge=false
 
 # ==============================================================================
 # Stage 2: Runtime stage
